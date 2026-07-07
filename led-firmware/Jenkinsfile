@@ -1,4 +1,8 @@
-@Library('shared_library@main') _
+library identifier: 'shared_library@main', retriever: modernSCM(
+    [$class: 'GitSCMSource',
+     remote: 'https://github.com/sandeepds077/shared_library.git',
+     traits: [[$class: 'CloneOptionTrait', noTags: false, shallow: false]]]
+)
 
 pipeline {
     agent { label 'linux-agent' }
@@ -36,11 +40,14 @@ pipeline {
 
         stage('Configure') {
             steps {
-                sh '''
-                mkdir -p ${PROJECT_DIR}/${BUILD_DIR}
-                cd ${PROJECT_DIR}/${BUILD_DIR}
-                cmake .. -DCMAKE_TOOLCHAIN_FILE=../arm-gcc-toolchain.cmake
-                '''
+                dir("${env.WORKSPACE}/${env.PROJECT_DIR}") {
+                    sh '''
+                    set -e
+                    mkdir -p "${BUILD_DIR}"
+                    cd "${BUILD_DIR}"
+                    cmake .. -DCMAKE_TOOLCHAIN_FILE=../arm-gcc-toolchain.cmake
+                    '''
+                }
             }
         }
 
