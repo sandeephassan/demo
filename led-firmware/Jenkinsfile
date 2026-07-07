@@ -31,6 +31,13 @@ pipeline {
                         echo "Shared library not available or failed to load: ${err}"
                     }
 
+                    // If shared library was loaded, set flag for other stages
+                    if (usedShared) {
+                        env.USE_SHARED = 'true'
+                    } else {
+                        env.USE_SHARED = 'false'
+                    }
+
                     if (!usedShared) {
                         sh '''
                         set -e
@@ -60,26 +67,47 @@ pipeline {
 
         stage('Lint') {
             steps {
-                sh '''
-                set +e
-                REPORT_DIR=${PROJECT_DIR}/${BUILD_DIR}
-                mkdir -p "$REPORT_DIR"
-                REPORT="$REPORT_DIR/clang-format-report.txt"
-                echo "Clang-format report generated at: $REPORT" > "$REPORT"
+                script {
+                    if (env.USE_SHARED == 'true' && this.metaClass.respondsTo(this, 'runClangFormat')) {
+                        echo 'Using shared library runClangFormat()'
+                        runClangFormat(env.PROJECT_DIR, env.BUILD_DIR)
+                    } else if (env.USE_SHARED == 'true') {
+                        echo 'Shared library loaded but runClangFormat() not found; falling back to inline'
+                        sh '''
+                        REPORT_DIR=${PROJECT_DIR}/${BUILD_DIR}
+                        mkdir -p "$REPORT_DIR"
+                        REPORT="$REPORT_DIR/clang-format-report.txt"
+                        echo "Clang-format report generated at: $REPORT" > "$REPORT"
+                        if command -v clang-format >/dev/null 2>&1; then
+                          find ${PROJECT_DIR}/src ${PROJECT_DIR}/include -type f -name "*.c" -print0 | xargs -0 --no-run-if-empty clang-format --dry-run --Werror >> "$REPORT" || true
+                          find ${PROJECT_DIR}/src ${PROJECT_DIR}/include -type f -name "*.h" -print0 | xargs -0 --no-run-if-empty clang-format --dry-run --Werror >> "$REPORT" || true
+                        else
+                          echo "clang-format not found; skipping lint" >> "$REPORT"
+                        fi
+                        tail -n +1 "$REPORT" || true
+                        '''
+                    } else {
+                        // No shared lib used; run inline lint
+                        sh '''
+                        set +e
+                        REPORT_DIR=${PROJECT_DIR}/${BUILD_DIR}
+                        mkdir -p "$REPORT_DIR"
+                        REPORT="$REPORT_DIR/clang-format-report.txt"
+                        echo "Clang-format report generated at: $REPORT" > "$REPORT"
 
-                if command -v clang-format >/dev/null 2>&1; then
-                    echo "Checking C files..." >> "$REPORT"
-                    find ${PROJECT_DIR}/src ${PROJECT_DIR}/include -type f -name "*.c" -print0 | xargs -0 --no-run-if-empty sh -c 'clang-format --dry-run --Werror "$@" 2>&1' sh >> "$REPORT" || true
-                    echo "Checking H files..." >> "$REPORT"
-                    find ${PROJECT_DIR}/src ${PROJECT_DIR}/include -type f -name "*.h" -print0 | xargs -0 --no-run-if-empty sh -c 'clang-format --dry-run --Werror "$@" 2>&1' sh >> "$REPORT" || true
-                else
-                    echo "clang-format not found; skipping lint" >> "$REPORT"
-                fi
+                        if command -v clang-format >/dev/null 2>&1; then
+                            find ${PROJECT_DIR}/src ${PROJECT_DIR}/include -type f -name "*.c" -print0 | xargs -0 --no-run-if-empty sh -c 'clang-format --dry-run --Werror "$@" 2>&1' sh >> "$REPORT" || true
+                            find ${PROJECT_DIR}/src ${PROJECT_DIR}/include -type f -name "*.h" -print0 | xargs -0 --no-run-if-empty sh -c 'clang-format --dry-run --Werror "$@" 2>&1' sh >> "$REPORT" || true
+                        else
+                            echo "clang-format not found; skipping lint" >> "$REPORT"
+                        fi
 
-                echo "--- clang-format summary ---"
-                tail -n +1 "$REPORT" || true
-                exit 0
-                '''
+                        echo "--- clang-format summary ---"
+                        tail -n +1 "$REPORT" || true
+                        exit 0
+                        '''
+                    }
+                }
             }
         }
 
@@ -95,10 +123,17 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh '''
-                cd ${PROJECT_DIR}/${BUILD_DIR}
-                cmake --build .
-                '''
+                script {
+                    if (env.USE_SHARED == 'true' && this.metaClass.respondsTo(this, 'buildFirmware')) {
+                        echo 'Using shared library buildFirmware()'
+                        buildFirmware(env.PROJECT_DIR, env.BUILD_DIR)
+                    } else {
+                        sh '''
+                        cd ${PROJECT_DIR}/${BUILD_DIR}
+                        cmake --build .
+                        '''
+                    }
+                }
             }
         }
 
