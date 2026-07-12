@@ -1,13 +1,16 @@
 cmake_minimum_required(VERSION 3.15)
-project(LEDFirmware C)
+project(LEDFirmware C ASM)
+
+enable_language(ASM)
 
 set(CMAKE_C_STANDARD 11)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-add_executable(led_test
-    tests/led_test.c
+add_executable(firmware.elf
+    src/main.c
     src/led.c
+    startup.s
 )
 set_target_properties(led_test PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
@@ -37,6 +40,7 @@ target_compile_options(firmware.elf PRIVATE
 target_link_options(firmware.elf PRIVATE
     -mcpu=cortex-m4
     -mthumb
+    -T${CMAKE_SOURCE_DIR}/linker.ld
     -nostdlib
     -nostartfiles
     -Wl,--gc-sections
