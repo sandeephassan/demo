@@ -11,9 +11,12 @@ pipeline {
         timestamps()
     }
     environment {
-        BUILD_DIR = 'build'
-        PROJECT_DIR = 'led-firmware'
-    }
+    BUILD_DIR = 'build'
+    PROJECT_DIR = 'led-firmware'
+
+    ARM_GCC = '/opt/arm-gnu-toolchain-14.2.rel1-x86_64-arm-none-eabi/bin'
+    PATH = "${ARM_GCC}:${env.PATH}"
+}
     stages {
         stage('Checkout') {
             steps {
