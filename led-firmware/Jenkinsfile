@@ -55,6 +55,16 @@ pipeline {
             }
         }
 
+        stage('Debug') {
+    steps {
+        sh '''
+        echo "PATH=$PATH"
+        which arm-none-eabi-gcc
+        arm-none-eabi-gcc --version
+        '''
+    }
+}
+
         stage('Configure') {
             steps {
                 dir("${env.WORKSPACE}/${env.PROJECT_DIR}") {
