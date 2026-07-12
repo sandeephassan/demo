@@ -26,20 +26,24 @@ pipeline {
                 checkout scm
             }
         }
-       stage('Run in Parallel') {
-               parallel {
-                 stage('Compile') {
-                        steps {
-                             sh 'cd vehicle-parking && mvn clean compile'
-                              }
-                         }
 
-                   stage('Unit Tests') {
-                          steps {
-                               sh 'cd vehicle-parking && mvn test -Dtest=**/*Test.java'
-                              }
-                         }
-               }    
+        stage('Build & Test') {
+            parallel {
+
+                stage('Compile') {
+                    steps {
+                        sh 'cd vehicle-parking && mvn clean compile'
+                    }
+                }
+
+                stage('Unit Tests') {
+                    steps {
+                        sh 'cd vehicle-parking && mvn test -Dtest=**/*Test.java'
+                    }
+                }
+            }
+        }
+
         stage('Package') {
             steps {
                 sh 'cd vehicle-parking && mvn package'
