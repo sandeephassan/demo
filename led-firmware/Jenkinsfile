@@ -1,6 +1,7 @@
 library identifier: 'shared_library@main', retriever: modernSCM(
     [$class: 'GitSCMSource',
-     remote: 'https://github.com/sandeepds077/shared_library.git',
+     remote: 'https://github.com/sandeephassan/shared_library.git',
+     
      traits: [[$class: 'CloneOptionTrait', noTags: false, shallow: false]]]
 )
 
