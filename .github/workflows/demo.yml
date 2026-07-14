@@ -1,1 +1,26 @@
+name: Build Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on:
+      - self-hosted
+      - linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Runner
+        run: |
+          hostname
+          whoami
+          pwd
+
+      - name: Build
+        run: echo "Building application..."
 
